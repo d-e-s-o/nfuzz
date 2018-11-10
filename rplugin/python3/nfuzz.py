@@ -21,11 +21,8 @@ from itertools import (
   islice,
 )
 from os.path import (
-  commonpath,
   dirname,
   expanduser,
-  isabs,
-  join,
 )
 from neovim import (
   function,
@@ -88,42 +85,17 @@ class Main(object):
     return self.vim.command_output("pwd").strip()
 
 
-  def root(self):
-    """Retrieve the directory root of all opened files.
-
-      Neovim generally supports two modes of operation: One in which the
-      current working directory is fixed and another one in which the
-      editor always changes to the directory containing the file being
-      edited. The more general approach is to be able to handle the
-      second case and so that is what this function attempts to do.
-
-      In a nutshell, we take the absolute paths to all already open
-      files (i.e., buffers) and find the common prefix they all share.
-    """
-    def mkabs(path):
-      """Make a path an absolute path."""
-      # Buffer names may abbreviate the user's home directory, so make
-      # sure to expand it.
-      path = expanduser(path)
-
-      if not isabs(path):
-        path = join(cwd, path)
-
-      return path
-
-    cwd = self.cwd()
-    paths = list(map(mkabs, self.iterBuffers()))
-    if len(paths) == 1:
-      return dirname(paths[0])
-    else:
-      return commonpath(list(paths))
-
-
   @function("NfuzzFiles", sync=False)
   def files(self, args):
     """Select a file to open by using 'fzy' on the files below the source root directory."""
+    # 'fd' does not understand '~' as the home directory, so we have to
+    # expand that ourselves.
+    dirs = map(expanduser, self.iterBuffers())
+    dirs = map(dirname, dirs)
+    dirs = filter(lambda x: len(x) > 0, dirs)
+    dirs = list(set(dirs) | {self.cwd()})
     try:
-      p1 = Popen(["fd", "--type=f", ".", self.root()], stdout=PIPE)
+      p1 = Popen(["fd", "--type=f", "."] + dirs, stdout=PIPE)
       p2 = Popen(["fzy-tmux"], stdin=p1.stdout, stdout=PIPE)
       out, _ = p2.communicate()
     except CalledProcessError as e:
