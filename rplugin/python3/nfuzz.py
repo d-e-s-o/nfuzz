@@ -17,6 +17,9 @@
 # *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
 # ***************************************************************************/
 
+from functools import (
+  lru_cache,
+)
 from itertools import (
   islice,
 )
@@ -25,11 +28,15 @@ from os.path import (
   expanduser,
 )
 from neovim import (
+  api,
   function,
   plugin,
 )
 from re import (
   compile as regex,
+)
+from shlex import (
+  split as shsplit,
 )
 from subprocess import (
   CalledProcessError,
@@ -41,6 +48,17 @@ from subprocess import (
 
 @plugin
 class Main(object):
+  # The default fuzzer command to use.
+  DEFAULT_FUZZER = "fzy-tmux"
+  # The default finder command to use.
+  DEFAULT_FINDER = "fd --type=f ."
+
+  # The name of the variable representing the fuzzer to invoke.
+  FUZZER = "g:nfuzz_fuzzer"
+  # The name of the variable representing the find command to invoke for
+  # searching files.
+  FINDER = "g:nfuzz_finder"
+
   # A regular expression for extracting the buffer name of Nvim's 'ls'
   # command.
   LS_REGEX = regex(".*\"(.+)\".*")
@@ -49,6 +67,25 @@ class Main(object):
   def __init__(self, vim):
     """Initialize the plugin."""
     self.vim = vim
+
+
+  @lru_cache()
+  def variable(self, name, default):
+    """Retrieve the value of the given variable."""
+    try:
+      return self.vim.command_output("echo %s" % name)
+    except api.nvim.NvimError:
+      return default
+
+
+  def fuzzer(self):
+    """Retrieve the fuzzer command to use."""
+    return shsplit(self.variable(Main.FUZZER, Main.DEFAULT_FUZZER))
+
+
+  def finder(self):
+    """Retrieve the fuzzer command to use."""
+    return shsplit(self.variable(Main.FINDER, Main.DEFAULT_FINDER))
 
 
   def iterBuffers(self):
@@ -73,7 +110,7 @@ class Main(object):
     buffers = map(lambda x: x.encode(), self.iterBuffers())
     buffers = b"\n".join(buffers)
     try:
-      out = check_output(["fzy-tmux"], input=buffers)
+      out = check_output(self.fuzzer(), input=buffers)
     except CalledProcessError as e:
       self.vim.command("echo \"%s\"" % str(e))
     else:
@@ -95,8 +132,8 @@ class Main(object):
     dirs = filter(lambda x: len(x) > 0, dirs)
     dirs = list(set(dirs) | {self.cwd()})
     try:
-      p1 = Popen(["fd", "--type=f", "."] + dirs, stdout=PIPE)
-      p2 = Popen(["fzy-tmux"], stdin=p1.stdout, stdout=PIPE)
+      p1 = Popen(self.finder() + dirs, stdout=PIPE)
+      p2 = Popen(self.fuzzer(), stdin=p1.stdout, stdout=PIPE)
       out, _ = p2.communicate()
     except CalledProcessError as e:
       self.vim.command("echo \"%s\"" % str(e))

@@ -50,8 +50,9 @@ after a restart of the editor:
 :UpdateRemotePlugins
 ```
 
-In its current form **nfuzz** requires [`fzy`][fzy] to facilitate the
-fuzzy search and additionally [`fd`][fd] to find files.
+By default **nfuzz** uses [`fzy`][fzy] to facilitate the fuzzy search
+and [`fd`][fd] to find files. See below for how to change those
+defaults.
 
 
 Configuration
@@ -63,6 +64,15 @@ them. A sample configuration may look like this:
 ```vim
 map <leader>b :call NfuzzBuffers()<CR>
 map <leader>f :call NfuzzFiles()<CR>
+```
+
+In addition, the default fuzzy searcher as well as the program to find
+files can be configured through global variables:
+```vim
+" The fuzzy searcher to use.
+let g:nfuzz_fuzzer = "fzy-tmux"
+" The command to list all files below a set of directories.
+let g:nfuzz_finder = "fd --type=f ."
 ```
 
 [neovim]: https://neovim.io
