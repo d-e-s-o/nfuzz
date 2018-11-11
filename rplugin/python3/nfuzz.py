@@ -20,12 +20,8 @@
 from functools import (
   lru_cache,
 )
-from itertools import (
-  islice,
-)
 from os.path import (
   dirname,
-  expanduser,
 )
 from neovim import (
   api,
@@ -90,18 +86,7 @@ class Main(object):
 
   def iterBuffers(self):
     """Retrieve an iterator over all the available buffers."""
-    def filterBufs(line):
-      """Filter out the buffer names from the output of 'ls'."""
-      m = Main.LS_REGEX.match(line)
-      buf, = m.groups()
-      return buf
-
-    buffers = self.vim.command_output("ls").splitlines()
-    # Remove the first line of the output.
-    buffers = islice(buffers, 1, None)
-    # Then extract the actual buffer names.
-    buffers = map(filterBufs, buffers)
-    return buffers
+    return map(lambda x: x.name, self.vim.request("nvim_list_bufs"))
 
 
   @function("NfuzzBuffers", sync=False)
@@ -125,10 +110,10 @@ class Main(object):
   @function("NfuzzFiles", sync=False)
   def files(self, args):
     """Select a file to open by using 'fzy' on the files below the source root directory."""
-    # 'fd' does not understand '~' as the home directory, so we have to
-    # expand that ourselves.
-    dirs = map(expanduser, self.iterBuffers())
-    dirs = map(dirname, dirs)
+    # TODO: 'fd' fails if a directory does not exist. As a useful
+    #       pre-processing step minimizing such failures we should
+    #       remove subsumed directories.
+    dirs = map(dirname, self.iterBuffers())
     dirs = filter(lambda x: len(x) > 0, dirs)
     dirs = list(set(dirs) | {self.cwd()})
     try:
