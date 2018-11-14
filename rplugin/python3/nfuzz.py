@@ -39,6 +39,7 @@ from subprocess import (
   check_output,
   PIPE,
   Popen,
+  TimeoutExpired,
 )
 
 
@@ -107,6 +108,31 @@ class Main(object):
     return self.vim.command_output("pwd").strip()
 
 
+  def pipeline(self, cmd1, cmd2):
+    """Invoke a pipeline of two commands."""
+    with Popen(cmd1, stdout=PIPE, stderr=PIPE) as p1,\
+        Popen(cmd2, stdin=p1.stdout, stdout=PIPE, stderr=PIPE) as p2:
+      # Allow 'p1' to receive a SIGPIPE if 'p2' exits.
+      p1.stdout.close()
+      p1.stdout = None
+
+      _, err = p1.communicate()
+      if p1.returncode != 0:
+        p2.terminate()
+        try:
+          p2.wait(2)
+        except TimeoutExpired:
+          p2.kill()
+
+        raise CalledProcessError(p1.returncode, p1.args, output=err)
+
+      out, err = p2.communicate()
+      if p2.returncode != 0:
+        raise CalledProcessError(p2.returncode, p2.args, output=err)
+
+      return out
+
+
   @function("NfuzzFiles", sync=False)
   def files(self, args):
     """Select a file to open by using 'fzy' on the files below the source root directory."""
@@ -117,10 +143,8 @@ class Main(object):
     dirs = filter(lambda x: len(x) > 0, dirs)
     dirs = list(set(dirs) | {self.cwd()})
     try:
-      p1 = Popen(self.finder() + dirs, stdout=PIPE)
-      p2 = Popen(self.fuzzer(), stdin=p1.stdout, stdout=PIPE)
-      out, _ = p2.communicate()
+      out = self.pipeline(self.finder() + dirs, self.fuzzer())
     except CalledProcessError as e:
-      self.vim.command("echo \"%s\"" % str(e))
+      self.vim.command("echo \"%s: %s\"" % (str(e), e.output.decode()))
     else:
       self.vim.command("edit %s" % out.decode())
