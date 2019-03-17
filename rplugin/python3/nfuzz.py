@@ -1,7 +1,7 @@
 # nfuzz.py
 
 #/***************************************************************************
-# *   Copyright (C) 2018 Daniel Mueller (deso@posteo.net)                   *
+# *   Copyright (C) 2018-2019 Daniel Mueller (deso@posteo.net)              *
 # *                                                                         *
 # *   This program is free software: you can redistribute it and/or modify  *
 # *   it under the terms of the GNU General Public License as published by  *
@@ -20,8 +20,17 @@
 from functools import (
   lru_cache,
 )
+from itertools import (
+  chain,
+)
+from os import (
+  getcwd,
+)
 from os.path import (
+  abspath,
+  commonpath,
   dirname,
+  isdir,
 )
 from neovim import (
   api,
@@ -41,6 +50,28 @@ from subprocess import (
   Popen,
   TimeoutExpired,
 )
+
+
+def removeSubsumedPaths(paths):
+  """Remove paths that are subsumed by directories."""
+  if len(paths) <= 1:
+    return paths
+
+  # We work on a sorted list of paths. This way we are sure that
+  # paths potentially subsuming other paths appear before the latter.
+  paths = sorted(paths)
+  subsumer, *paths = paths
+  new_paths = [subsumer]
+
+  for path in paths:
+    common = commonpath([subsumer, path])
+    if common != subsumer:
+      # `subsumer` does not subsume `path`. Add it to the new list of
+      # paths.
+      new_paths += [path]
+      subsumer = path
+
+  return new_paths
 
 
 @plugin
@@ -136,12 +167,12 @@ class Main(object):
   @function("NfuzzFiles", sync=False)
   def files(self, args):
     """Select a file to open by using 'fzy' on the files below the source root directory."""
-    # TODO: 'fd' fails if a directory does not exist. As a useful
-    #       pre-processing step minimizing such failures we should
-    #       remove subsumed directories.
     dirs = map(dirname, self.iterBuffers())
     dirs = filter(lambda x: len(x) > 0, dirs)
-    dirs = list(set(dirs) | {self.cwd()})
+    dirs = list(chain(dirs, [getcwd()]))
+    dirs = filter(isdir, dirs)
+    dirs = map(abspath, dirs)
+    dirs = removeSubsumedPaths(list(dirs))
     try:
       out = self.pipeline(self.finder() + dirs, self.fuzzer())
     except CalledProcessError as e:
