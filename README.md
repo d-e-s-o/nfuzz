@@ -34,7 +34,7 @@ Installation typically happens by means of a plugin manager. For
 ```vim
 call vundle#begin('~/.config/nvim/bundle')
 ...
-Plugin 'd-e-s-o/nfuzz' "<---- relevant line
+Plugin 'd-e-s-o/nfuzz' <---- relevant line
 ...
 call vundle#end()
 ```
