@@ -1,7 +1,7 @@
 # nfuzz.py
 
 #/***************************************************************************
-# *   Copyright (C) 2018-2019 Daniel Mueller (deso@posteo.net)              *
+# *   Copyright (C) 2018-2022 Daniel Mueller (deso@posteo.net)              *
 # *                                                                         *
 # *   This program is free software: you can redistribute it and/or modify  *
 # *   it under the terms of the GNU General Public License as published by  *
@@ -86,10 +86,6 @@ class Main(object):
   # The name of the variable representing the find command to invoke for
   # searching files.
   FINDER = "g:nfuzz_finder"
-
-  # A regular expression for extracting the buffer name of Nvim's 'ls'
-  # command.
-  LS_REGEX = regex(".*\"(.+)\".*")
 
 
   def __init__(self, vim):
