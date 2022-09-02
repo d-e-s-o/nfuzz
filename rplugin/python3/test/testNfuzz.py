@@ -42,5 +42,32 @@ class TestNfuzz(TestCase):
     self.assertEqual(non_subsumed, ["/rplugin"])
 
 
+  def testSubsumedPathRemovalRelative(self):
+    """Verify that our logic to remove subsumed paths works as expected on relative paths."""
+    paths = [
+      "./rplugin/python3/test",
+      "./rplugin",
+      "./rplugin/python3",
+    ]
+
+    non_subsumed = removeSubsumedPaths(paths)
+    self.assertEqual(non_subsumed, ["./rplugin"])
+
+
+  def testSubsumedPathRemovalRelativeWithoutLeadingDot(self):
+    """
+    Verify that our logic to remove subsumed paths works as expected on relative paths without a
+    leading dot.
+    """
+    paths = [
+      "rplugin/python3/test",
+      "rplugin",
+      "rplugin/python3",
+    ]
+
+    non_subsumed = removeSubsumedPaths(paths)
+    self.assertEqual(non_subsumed, ["rplugin"])
+
+
 if __name__ == "__main__":
   main()
