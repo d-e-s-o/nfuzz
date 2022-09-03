@@ -69,5 +69,17 @@ class TestNfuzz(TestCase):
     self.assertEqual(non_subsumed, ["rplugin"])
 
 
+  def testSubsumedPathRemovalMixed(self):
+    """Verify that our logic to remove subsumed paths works as expected on mixed paths."""
+    paths = [
+      "/rplugin",
+      "./rplugin/python3/test",
+      "/rplugin/python3",
+    ]
+
+    non_subsumed = removeSubsumedPaths(paths)
+    self.assertEqual(non_subsumed, ["./rplugin/python3/test", "/rplugin"])
+
+
 if __name__ == "__main__":
   main()

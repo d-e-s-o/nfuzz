@@ -64,8 +64,8 @@ def removeSubsumedPaths(paths):
   new_paths = [subsumer]
 
   for path in paths:
-    common = commonpath([subsumer, path])
-    if abspath(common) != abspath(subsumer):
+    common = commonpath([abspath(subsumer), abspath(path)])
+    if common != abspath(subsumer):
       # `subsumer` does not subsume `path`. Add it to the new list of
       # paths.
       new_paths += [path]
