@@ -108,7 +108,7 @@ class Main(object):
 
 
   def finder(self):
-    """Retrieve the fuzzer command to use."""
+    """Retrieve the finder command to use."""
     return shsplit(self.variable(Main.FINDER, Main.DEFAULT_FINDER))
 
 
