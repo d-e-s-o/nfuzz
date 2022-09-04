@@ -114,7 +114,7 @@ class Main(object):
 
   def iterBuffers(self):
     """Retrieve an iterator over all the available buffers."""
-    return map(lambda x: x.name, self.vim.request("nvim_list_bufs"))
+    return map(lambda x: x.name, self.vim.api.list_bufs())
 
 
   @function("NfuzzBuffers", sync=False)
