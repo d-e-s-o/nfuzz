@@ -31,6 +31,8 @@ from os.path import (
   commonpath,
   dirname,
   isdir,
+  join,
+  relpath,
 )
 from neovim import (
   api,
@@ -120,14 +122,20 @@ class Main(object):
   @function("NfuzzBuffers", sync=False)
   def buffers(self, args):
     """Select a buffer to open by using 'fzy' on the output of Nvim's 'ls'."""
-    buffers = map(lambda x: x.encode(), self.iterBuffers())
+    cwd = self.cwd()
+    buffers = self.iterBuffers()
+    buffers = map(lambda x: relpath(x, cwd), buffers)
+    buffers = map(lambda x: x.encode(), buffers)
     buffers = b"\n".join(buffers)
     try:
       out = check_output(self.fuzzer(), input=buffers)
     except CalledProcessError as e:
       self.vim.command("echo \"%s\"" % str(e))
     else:
-      self.vim.command("buffer %s" % out.decode())
+      # Output may be empty if the user aborted the fuzzer invocation,
+      # for example, in which case we want to do nothing.
+      if out:
+        self.vim.command("buffer %s" % abspath(join(cwd, out.decode())))
 
 
   def cwd(self):
