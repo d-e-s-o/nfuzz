@@ -171,15 +171,18 @@ class Main(object):
   @function("NfuzzFiles", sync=False)
   def files(self, args):
     """Select a file to open by using 'fzy' on the files below the source root directory."""
+    cwd = self.cwd();
     dirs = map(dirname, self.iterBuffers())
     dirs = filter(lambda x: len(x) > 0, dirs)
-    dirs = list(chain(dirs, [getcwd()]))
     dirs = filter(isdir, dirs)
     dirs = map(abspath, dirs)
     dirs = removeSubsumedPaths(list(dirs))
     try:
-      out = self.pipeline(self.finder() + dirs, self.fuzzer())
+      # We guarantee that the finder command is invoked with the current
+      # working directory as the first argument.
+      out = self.pipeline(self.finder() + [cwd] + dirs, self.fuzzer())
     except CalledProcessError as e:
       self.vim.command("echo \"%s: %s\"" % (str(e), e.output.decode()))
     else:
-      self.vim.command("edit %s" % out.decode())
+      if out:
+        self.vim.command("edit %s" % out.decode())

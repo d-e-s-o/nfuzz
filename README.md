@@ -72,7 +72,7 @@ files can be configured through global variables:
 " The fuzzy searcher to use.
 let g:nfuzz_fuzzer = "fzy-tmux"
 " The command to list all files below a set of directories.
-let g:nfuzz_finder = "fd --type=f ."
+let g:nfuzz_finder = "fd --type=f --base-directory"
 ```
 
 [neovim]: https://neovim.io
