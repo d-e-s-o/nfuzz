@@ -1,7 +1,7 @@
 # nfuzz.py
 
 #/***************************************************************************
-# *   Copyright (C) 2018-2022 Daniel Mueller (deso@posteo.net)              *
+# *   Copyright (C) 2018-2023 Daniel Mueller (deso@posteo.net)              *
 # *                                                                         *
 # *   This program is free software: you can redistribute it and/or modify  *
 # *   it under the terms of the GNU General Public License as published by  *
@@ -17,6 +17,9 @@
 # *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
 # ***************************************************************************/
 
+from collections import (
+  namedtuple,
+)
 from functools import (
   lru_cache,
 )
@@ -52,6 +55,9 @@ from subprocess import (
   Popen,
   TimeoutExpired,
 )
+
+
+Buffer = namedtuple("Buffer", ["number", "name"])
 
 
 def removeSubsumedPaths(paths):
@@ -116,7 +122,7 @@ class Main(object):
 
   def iterBuffers(self):
     """Retrieve an iterator over all the available buffers."""
-    return map(lambda x: x.name, self.vim.api.list_bufs())
+    return map(lambda buffer: Buffer(buffer.number, buffer.name), self.vim.api.list_bufs())
 
 
   @function("NfuzzBuffers", sync=False)
@@ -124,8 +130,8 @@ class Main(object):
     """Select a buffer to open by using 'fzy' on the output of Nvim's 'ls'."""
     cwd = self.cwd()
     buffers = self.iterBuffers()
-    buffers = map(lambda x: relpath(x, cwd), buffers)
-    buffers = map(lambda x: x.encode(), buffers)
+    buffers = map(lambda buffer: (buffer.number, relpath(buffer.name, cwd)), buffers)
+    buffers = map(lambda buffer: f"{buffer[1]} {buffer[0]}".encode(), buffers)
     buffers = b"\n".join(buffers)
     try:
       out = check_output(self.fuzzer(), input=buffers)
@@ -135,7 +141,11 @@ class Main(object):
       # Output may be empty if the user aborted the fuzzer invocation,
       # for example, in which case we want to do nothing.
       if out:
-        self.vim.command("buffer %s" % abspath(join(cwd, out.decode())))
+        # If it is not empty, we need to "parse" the buffer number from
+        # its path again. It's the number that we use for selection the
+        # buffer the user desired.
+        _path, number = out.decode().rsplit(" ", 1)
+        self.vim.command(f"buffer {number}")
 
 
   def cwd(self):
@@ -172,7 +182,8 @@ class Main(object):
   def files(self, args):
     """Select a file to open by using 'fzy' on the files below the source root directory."""
     cwd = self.cwd();
-    dirs = map(dirname, self.iterBuffers())
+    dirs = map(lambda buffer: buffer.name, self.iterBuffers())
+    dirs = map(dirname, dirs)
     dirs = filter(lambda x: len(x) > 0, dirs)
     dirs = filter(isdir, dirs)
     dirs = map(abspath, dirs)
