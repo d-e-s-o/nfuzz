@@ -14,12 +14,12 @@ property hard to achieve once many open buffers exist and files have
 identical names.
 
 A common solution to problems like this is the application of fuzzy
-searching. Fuzzy search describes a search where the character the user
+searching. Fuzzy search describes a search where the characters the user
 typed are searched for in the input list, but the only constraint is
-that they those characters appear in the result in order they were
-supplied. Most importantly, the user is not required to supply a
-contiguous part of the intended result. For example, the search string
-`fzy` would match <tt><b>f</b>u<b>z</b>z<b>y</b></tt>, `abc` could match
+that those characters appear in the match in order they were supplied.
+Most importantly, the user is not required to supply a contiguous part
+of the intended result. For example, the search string `fzy` would match
+<tt><b>f</b>u<b>z</b>z<b>y</b></tt>, `abc` could match
 <tt><b>a</b>nother <b>b</b>eautiful <b>c</b>loud</tt>, or `check` could
 match <tt><b>check</b>_output</tt>.
 
@@ -72,7 +72,7 @@ files can be configured through global variables:
 " The fuzzy searcher to use.
 let g:nfuzz_fuzzer = "fzy-tmux"
 " The command to list all files below a set of directories.
-let g:nfuzz_finder = "fd --type=f --base-directory"
+let g:nfuzz_finder = "fd . --type=f --base-directory"
 ```
 
 [neovim]: https://neovim.io
